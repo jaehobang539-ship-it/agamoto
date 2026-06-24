@@ -527,7 +527,7 @@
 
   async function renderCommunity() {
     const el = document.getElementById('community-list');
-    el.innerHTML = `<div class="loading"><span class="spinner"></span>Reddit에서 실시간 데이터 불러오는 중...</div>`;
+    el.innerHTML = `<div class="loading"><span class="spinner"></span>StockTwits에서 실시간 데이터 불러오는 중...</div>`;
 
     // Reddit 데이터를 백엔드 API에서 가져오기
     const redditRes = await fetch('/api/reddit');
@@ -802,8 +802,8 @@
   async function fetchPrice(symbol){
     try{
       const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-      const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res=await fetch(proxy);const json=await res.json();const data=JSON.parse(json.contents);
+      const proxy=`https://corsproxy.io/?${encodeURIComponent(url)}`;
+      const res=await fetch(proxy);const json=await res.json();const data=typeof json==='string'?JSON.parse(json):json.contents?JSON.parse(json.contents):json;
       const meta=data.chart.result[0].meta;const price=meta.regularMarketPrice;const prev=meta.chartPreviousClose||meta.regularMarketPreviousClose;
       const change=((price-prev)/prev*100).toFixed(2);const isKRX=symbol.includes('.KS')||symbol.includes('.KQ');
       const formatted=isKRX?`₩${Math.round(price).toLocaleString()}`:`$${price.toFixed(2)}`;
@@ -814,7 +814,7 @@
   async function fetchNews(symbol){
     try{
       const rssUrl=`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(symbol)}&region=US&lang=en-US`;
-      const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+      const proxy=`https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
       const res=await fetch(proxy);const json=await res.json();
       const parser=new DOMParser();const xml=parser.parseFromString(json.contents,'text/xml');const items=xml.querySelectorAll('item');
       const news=[];
