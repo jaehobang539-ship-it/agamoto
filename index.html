@@ -801,36 +801,27 @@
   // 주가·뉴스
   async function fetchPrice(symbol){
     try{
-      const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-      const proxy=`https://corsproxy.io/?${encodeURIComponent(url)}`;
-      const res=await fetch(proxy);const json=await res.json();const data=typeof json==='string'?JSON.parse(json):json.contents?JSON.parse(json.contents):json;
-      const meta=data.chart.result[0].meta;const price=meta.regularMarketPrice;const prev=meta.chartPreviousClose||meta.regularMarketPreviousClose;
-      const change=((price-prev)/prev*100).toFixed(2);const isKRX=symbol.includes('.KS')||symbol.includes('.KQ');
-      const formatted=isKRX?`₩${Math.round(price).toLocaleString()}`:`$${price.toFixed(2)}`;
-      return{price:formatted,change:parseFloat(change),companyName:meta.longName||meta.shortName||symbol};
+      const res=await fetch(`/api/price?symbol=${encodeURIComponent(symbol)}`);
+      if(!res.ok) return null;
+      return await res.json();
     }catch(e){return null;}
   }
 
   async function fetchNews(symbol){
     try{
-      const rssUrl=`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(symbol)}&region=US&lang=en-US`;
-      const proxy=`https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
-      const res=await fetch(proxy);const json=await res.json();
-      const parser=new DOMParser();const xml=parser.parseFromString(json.contents,'text/xml');const items=xml.querySelectorAll('item');
-      const news=[];
-      items.forEach((item,i)=>{
-        if(i>=5)return;
-        const title=item.querySelector('title')?.textContent||'';const link=item.querySelector('link')?.textContent||'#';
-        const pubDate=item.querySelector('pubDate')?.textContent||'';const date=pubDate?new Date(pubDate):null;
-        const diff=date?Math.floor((Date.now()-date)/60000):null;
-        const timeAgo=diff?(diff<60?`${diff}분 전`:diff<1440?`${Math.floor(diff/60)}시간 전`:`${Math.floor(diff/1440)}일 전`):'';
-        const source=item.querySelector('source')?.textContent||'Yahoo Finance';
-        news.push({title,link,timeAgo,source});
-      });return news;
+      const res=await fetch(`/api/news?symbol=${encodeURIComponent(symbol)}`);
+      if(!res.ok) return [];
+      const json=await res.json();
+      return json.news||[];
     }catch(e){return[];}
   }
 
-  function sentiment(title){
+  function sentiment(title, precomputed){
+    if(precomputed) {
+      if(precomputed.includes('호재')) return{label:'🔥 호재',cls:'s-pos'};
+      if(precomputed.includes('악재')) return{label:'💧 악재',cls:'s-neg'};
+      return{label:'📰 중립',cls:'s-neu'};
+    }
     const pos=['급등','상승','호재','돌파','성장','흑자','신고가','beat','surge','rise','gain','record'];
     const neg=['급락','하락','악재','부진','손실','적자','신저가','miss','fall','drop','loss','warn'];
     if(pos.some(w=>title.toLowerCase().includes(w)))return{label:'🔥 호재',cls:'s-pos'};
@@ -840,12 +831,29 @@
 
   // 검색
   const sInput=document.getElementById('search-input'),sSuggest=document.getElementById('suggestions');
+  let searchTimer;
   sInput.addEventListener('input',()=>{
-    const q=sInput.value.trim().toLowerCase();if(!q){sSuggest.style.display='none';return;}
-    const m=searchDB.filter(s=>s.symbol.toLowerCase().includes(q)||s.name.toLowerCase().includes(q)).slice(0,5);
-    if(!m.length){sSuggest.style.display='none';return;}
-    sSuggest.innerHTML=m.map(x=>`<div class="suggestion-item" onclick="selectSug('${x.symbol}')"><strong style="color:#fff">${x.symbol}</strong> ${x.name} <span style="color:#444;font-size:11px;">${x.exchange}</span></div>`).join('');
-    sSuggest.style.display='block';
+    const q=sInput.value.trim();
+    if(!q){sSuggest.style.display='none';return;}
+    // 로컬 DB 먼저
+    const local=searchDB.filter(s=>s.symbol.toLowerCase().includes(q.toLowerCase())||s.name.toLowerCase().includes(q.toLowerCase())).slice(0,3);
+    if(local.length){
+      sSuggest.innerHTML=local.map(x=>`<div class="suggestion-item" onclick="selectSug('${x.symbol}')"><strong style="color:#fff">${x.symbol}</strong> ${x.name} <span style="color:#444;font-size:11px;">${x.exchange}</span></div>`).join('');
+      sSuggest.style.display='block';
+    }
+    // 백엔드 검색
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(async()=>{
+      try{
+        const res=await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const json=await res.json();
+        const results=json.results||[];
+        if(results.length){
+          sSuggest.innerHTML=results.map(x=>`<div class="suggestion-item" onclick="selectSug('${x.symbol}')"><strong style="color:#fff">${x.symbol}</strong> ${x.name} <span style="color:#444;font-size:11px;">${x.exchange}</span></div>`).join('');
+          sSuggest.style.display='block';
+        }
+      }catch(e){}
+    },400);
   });
   sInput.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
   document.addEventListener('click',e=>{if(!e.target.closest('.search-box')&&!e.target.closest('.suggestions'))sSuggest.style.display='none';});
@@ -890,7 +898,7 @@
     const [pd,news]=await Promise.all([p._temp?Promise.resolve(p._pd):fetchPrice(p.symbol),fetchNews(p.symbol)]);
     const isSaved=watchlist.includes(p.symbol);const isHold=p.verdict==='hold';
     const priceHtml=pd?`<div class="live-label"><i class="ti ti-circle-dot" style="font-size:8px;"></i> 실시간</div><div class="price-val" style="font-size:26px">${pd.price}</div><div class="price-chg ${pd.change>=0?'up':'down'}" style="font-size:14px">${pd.change>=0?'+':''}${pd.change}%</div>`:`<div class="price-val" style="color:#333">-</div>`;
-    const newsHtml=news.length>0?news.map(n=>{const s=sentiment(n.title);return`<div class="news-item"><div class="news-head"><div class="news-title" onclick="window.open('${n.link}','_blank')">${n.title}</div><span class="news-badge ${s.cls}">${s.label}</span></div><div class="news-meta">${n.source} · ${n.timeAgo}</div></div>`;}).join(''):`<div style="color:#333;font-size:13px;padding:10px 0">뉴스를 불러올 수 없어요</div>`;
+    const newsHtml=news.length>0?news.map(n=>{const s=sentiment(n.title, n.sentiment);return`<div class="news-item"><div class="news-head"><div class="news-title" onclick="window.open('${n.link}','_blank')">${n.title}</div><span class="news-badge ${s.cls}">${s.label}</span></div><div class="news-meta">${n.source} · ${n.timeAgo}</div></div>`;}).join(''):`<div style="color:#333;font-size:13px;padding:10px 0">뉴스를 불러올 수 없어요</div>`;
     document.getElementById('detail-content').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;"><div><div style="font-size:26px;font-weight:500;letter-spacing:-0.8px;margin-bottom:2px;">${p.symbol}</div><div style="font-size:13px;color:#555;">${p.name} · ${p.sector}</div><div class="tags" style="margin-top:6px"><span class="tag">${p.exchange}</span><span class="tag">${p.country}</span></div></div><div class="price-block">${priceHtml}</div></div><div class="section-card"><h3><i class="ti ti-chart-bar"></i> 기본 지표</h3><div class="row"><span class="row-label">AI 분석 점수</span><span class="row-value green">${p.score}</span></div>${p.score!=='-'?`<div style="padding:4px 0 10px"><div class="progress-bar"><div class="progress-fill" style="width:${p.score}%"></div></div></div>`:''}<div class="row"><span class="row-label">리스크</span><span class="row-value amber">${p.risk}</span></div><div class="row"><span class="row-label">목표가</span><span class="row-value">${p.target}</span></div><div class="row"><span class="row-label">PER</span><span class="row-value">${p.pe}</span></div><div class="row"><span class="row-label">시가총액</span><span class="row-value">${p.marketCap}</span></div><div class="row"><span class="row-label">거래량</span><span class="row-value">${p.volume}</span></div></div><div class="section-card" id="ai-analysis-card-${p.symbol}"><h3><i class="ti ti-robot"></i> AI 실시간 분석 <span style="font-size:10px;color:#1D9E75;background:#1D9E7515;padding:2px 8px;border-radius:20px;margin-left:6px;">Claude AI</span></h3><div id="ai-analysis-${p.symbol}"><div class="loading"><span class="spinner"></span>Claude AI가 분석 중...</div></div></div><div class="section-card"><h3><i class="ti ti-news"></i> 실시간 뉴스</h3>${newsHtml}</div><div class="section-card"><h3><i class="ti ti-gavel"></i> AI 최종 판단</h3><div class="ai-verdict ${isHold?'hold-v':''}"><div class="ai-verdict-icon"><i class="ti ti-${isHold?'pause':'trending-up'}"></i></div><div><div class="ai-verdict-title">${p.action}</div><div class="ai-verdict-sub">목표가 ${p.target} · 6개월 기준</div></div></div></div><button class="btn-green ${isSaved?'saved':''}" id="detail-watch-btn" style="width:100%;margin-bottom:32px;" onclick="toggleWatch('${p.symbol}',true)"><i class="ti ti-star"></i> ${isSaved?'관심주 등록됨':'관심주 추가'}</button>`;
 
     // Claude AI 실시간 분석 호출
