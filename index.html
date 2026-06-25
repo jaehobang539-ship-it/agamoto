@@ -509,54 +509,39 @@
   }
 
   // 커뮤니티 언급량 — Reddit API
-  async function fetchReddit(subreddit, limit=25) {
-    try {
-      const res = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`, {headers:{'Accept':'application/json'}});
-      const json = await res.json();
-      return json.data.children.map(c=>c.data.title+' '+c.data.selftext);
-    } catch(e) { return []; }
-  }
-
-  function countMentions(texts, symbol) {
-    const aliases = { 'NVDA':['NVDA','nvidia','엔비디아'], 'TSLA':['TSLA','tesla','테슬라'], 'AAPL':['AAPL','apple','애플'], 'MSFT':['MSFT','microsoft','마이크로소프트'], 'AMD':['AMD'], 'META':['META','facebook','페이스북'], 'AMZN':['AMZN','amazon','아마존'], 'GOOGL':['GOOGL','google','구글'], '005930.KS':['삼성전자','samsung'], '000660.KS':['SK하이닉스','hynix'] };
-    const words = aliases[symbol] || [symbol];
-    let count = 0;
-    texts.forEach(text => { words.forEach(w => { const re=new RegExp(w,'gi'); const m=text.match(re); if(m) count+=m.length; }); });
-    return count;
-  }
-
   async function renderCommunity() {
     const el = document.getElementById('community-list');
     el.innerHTML = `<div class="loading"><span class="spinner"></span>StockTwits에서 실시간 데이터 불러오는 중...</div>`;
-
-    // Reddit 데이터를 백엔드 API에서 가져오기
-    const redditRes = await fetch('/api/reddit');
-    const redditJson = await redditRes.json();
-    const redditData = redditJson.data || [];
-
-    const symbols = ['NVDA','TSLA','AAPL','MSFT','AMD','META','AMZN','GOOGL','005930.KS','000660.KS'];
-    const counts = symbols.map(sym => ({ symbol:sym, name:allPicks.find(p=>p.symbol===sym)?.name||sym, count:countMentions(allTexts,sym), isKR:sym.includes('.KS') }));
-    counts.sort((a,b)=>b.count-a.count);
-
-    const filtered = communityFilter==='us' ? counts.filter(c=>!c.isKR) : communityFilter==='kr' ? counts.filter(c=>c.isKR) : counts;
-    const max = filtered[0]?.count || 1;
-    const colors = ['#E24B4A','#E24B4A','#BA7517','#BA7517','#1D9E75','#1D9E75','#555','#555','#555','#555'];
-
-    el.innerHTML = filtered.slice(0,10).map((item,i) => {
-      const pct = Math.round(item.count/max*100);
-      const rankCls = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
-      const changeColor = colors[i];
-      const pseudo = item.count > 0 ? `+${Math.round(item.count*12)}%` : '데이터 없음';
-      return `<div class="hot-rank">
-        <div class="rank-num ${rankCls}">${i+1}</div>
-        <div class="rank-info">
-          <div class="rank-sym">${item.symbol} <span style="font-size:11px;color:#444;">${item.name}</span></div>
-          <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%;background:${changeColor};"></div></div>
-          <div class="rank-sources">Reddit 언급 ${item.count}회 · r/wallstreetbets · r/stocks · r/investing</div>
-        </div>
-        <div class="rank-change" style="color:${changeColor}">${item.count>0?pseudo:'준비중'}</div>
-      </div>`;
-    }).join('') || `<div style="color:#444;font-size:13px;padding:10px 0;">데이터를 불러올 수 없어요. 잠시 후 다시 시도해주세요.</div>`;
+    try {
+      const res = await fetch('/api/reddit');
+      const json = await res.json();
+      let data = json.data || [];
+      if (communityFilter === 'us') data = data.filter(d => !d.symbol.includes('.KS'));
+      else if (communityFilter === 'kr') data = data.filter(d => d.symbol.includes('.KS'));
+      const max = data[0]?.count || 1;
+      const colors = ['#E24B4A','#E24B4A','#BA7517','#BA7517','#1D9E75','#1D9E75','#555','#555','#555','#555'];
+      const sentimentColor = { '강세':'#1D9E75', '약세':'#E24B4A', '중립':'#BA7517' };
+      el.innerHTML = data.slice(0,10).map((item,i) => {
+        const pct = Math.round(item.count/max*100);
+        const rankCls = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+        const color = colors[i] || '#555';
+        const sColor = sentimentColor[item.sentiment] || '#888';
+        return `<div class="hot-rank">
+          <div class="rank-num ${rankCls}">${i+1}</div>
+          <div class="rank-info">
+            <div class="rank-sym">${item.symbol} <span style="font-size:11px;color:#444;">${item.name}</span></div>
+            <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%;background:${color};"></div></div>
+            <div class="rank-sources">StockTwits 언급 ${item.count}회 · 강세 ${item.bullish} · 약세 ${item.bearish}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:500;color:${sColor}">${item.sentiment}</div>
+            <div style="font-size:11px;color:#444;">${item.count}개 메시지</div>
+          </div>
+        </div>`;
+      }).join('') || `<div style="color:#444;font-size:13px;padding:10px 0;">데이터를 불러올 수 없어요.</div>`;
+    } catch(e) {
+      el.innerHTML = `<div style="color:#444;font-size:13px;padding:10px 0;">데이터를 불러올 수 없어요. 잠시 후 다시 시도해주세요.</div>`;
+    }
   }
 
   function setCommunityTab(filter, el) {
