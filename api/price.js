@@ -1,6 +1,3 @@
-bash
-
-cat > /mnt/user-data/outputs/price.js << 'EOF'
 const FINNHUB_KEY = 'd8vkna9r01qgrv4p3u1gd8vkna9r01qgrv4p3u20';
 
 export default async function handler(req, res) {
@@ -83,8 +80,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 }
-EOF
-echo "done"
-출력
-
-done
