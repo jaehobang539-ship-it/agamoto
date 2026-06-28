@@ -217,7 +217,10 @@
     <div class="logo-icon"><i class="ti ti-eye"></i></div>
     <span class="logo-text">Agamoto</span>
   </div>
-  <button class="btn-premium">프리미엄</button>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button onclick="showPage('game')" style="background:none;border:1px solid #1a1a1a;color:#888;font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ti ti-trophy" style="font-size:14px;color:#BA7517;"></i> 랭킹</button>
+    <button class="btn-premium">프리미엄</button>
+  </div>
 </nav>
 
 <div id="page-home" class="page active">
@@ -342,7 +345,7 @@
   <div class="nav-item" id="nav-community" onclick="showPage('community')"><i class="ti ti-flame"></i><span>커뮤니티</span></div>
   <div class="nav-item" id="nav-etf" onclick="showPage('etf')"><i class="ti ti-stack"></i><span>미니ETF</span></div>
   <div class="nav-item" id="nav-portfolio" onclick="showPage('portfolio')"><i class="ti ti-sword"></i><span>캐릭터</span></div>
-  <div class="nav-item" id="nav-game" onclick="showPage('game')"><i class="ti ti-trophy"></i><span>랭킹</span></div>
+  <div class="nav-item" id="nav-mbti" onclick="showPage('mbti')"><i class="ti ti-brain"></i><span>성향</span></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -631,11 +634,11 @@ async function showDetail(symbol){
       <div class="row"><span class="row-label">리스크 수준</span><span class="row-value amber">${p.risk}</span></div>
       <div class="row"><span class="row-label">목표 주가</span><span class="row-value">${p.target}</span></div>
       <div class="row"><span class="row-label">현재가</span><span class="row-value">${pd?.price||'-'}</span></div>
-      <div class="row"><span class="row-label">PER</span><span class="row-value">${pd?.per||'-'}</span></div>
-      <div class="row"><span class="row-label">PBR</span><span class="row-value">${pd?.pbr||'-'}</span></div>
-      <div class="row"><span class="row-label">EPS</span><span class="row-value">${pd?.eps||'-'}</span></div>
+      <div class="row"><span class="row-label">PER <span style="font-size:10px;color:#444;">(최근12개월)</span></span><span class="row-value">${pd?.per||'-'}</span></div>
+      <div class="row"><span class="row-label">PBR <span style="font-size:10px;color:#444;">(주가/장부가)</span></span><span class="row-value">${pd?.pbr||'-'}</span></div>
+      <div class="row"><span class="row-label">EPS <span style="font-size:10px;color:#444;">(주당순이익)</span></span><span class="row-value">${pd?.eps||'-'}</span></div>
       <div class="row"><span class="row-label">배당수익률</span><span class="row-value">${pd?.dividend||'-'}</span></div>
-      <div class="row"><span class="row-label">ROE</span><span class="row-value green">${pd?.roe||'-'}</span></div>
+      <div class="row"><span class="row-label">ROE <span style="font-size:10px;color:#444;">(자기자본이익률)</span></span><span class="row-value green">${pd?.roe||'-'}</span></div>
       <div class="row"><span class="row-label">시가총액</span><span class="row-value">${pd?.marketCap||'-'}</span></div>
       <div class="row"><span class="row-label">52주 최고</span><span class="row-value green">${pd?.week52High||'-'}</span></div>
       <div class="row"><span class="row-label">52주 최저</span><span class="row-value red">${pd?.week52Low||'-'}</span></div>
