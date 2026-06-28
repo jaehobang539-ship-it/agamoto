@@ -1,6 +1,3 @@
-bash
-
-cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -276,23 +273,27 @@ cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
   <div class="wrap">
     <p class="page-title">📦 나만의 미니 ETF</p>
     <div class="section-card">
-      <h3><i class="ti ti-tag"></i> 키워드 선택</h3>
+      <h3><i class="ti ti-tag"></i> 테마 선택 또는 직접 입력</h3>
       <div class="etf-keyword-wrap" id="etf-keywords">
         <div class="etf-keyword" onclick="toggleKeyword(this,'AI')">AI</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'반도체')">반도체</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'전기차')">전기차</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'클라우드')">클라우드</div>
-        <div class="etf-keyword" onclick="toggleKeyword(this,'바이오')">바이오</div>
-        <div class="etf-keyword" onclick="toggleKeyword(this,'배당')">배당</div>
+        <div class="etf-keyword" onclick="toggleKeyword(this,'바이오헬스')">바이오헬스</div>
+        <div class="etf-keyword" onclick="toggleKeyword(this,'배당주')">배당주</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'메타버스')">메타버스</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'방산')">방산</div>
         <div class="etf-keyword" onclick="toggleKeyword(this,'2차전지')">2차전지</div>
+        <div class="etf-keyword" onclick="toggleKeyword(this,'핀테크')">핀테크</div>
+        <div class="etf-keyword" onclick="toggleKeyword(this,'로보틱스')">로보틱스</div>
+        <div class="etf-keyword" onclick="toggleKeyword(this,'우주항공')">우주항공</div>
       </div>
       <div class="etf-input-row">
-        <input class="etf-input" id="etf-custom" placeholder="직접 키워드 입력..." />
+        <input class="etf-input" id="etf-custom" placeholder="직접 테마 입력 (예: 친환경, 게임, 명품...)" />
         <button class="btn-green" style="flex:none;padding:10px 14px;" onclick="addCustomKeyword()">추가</button>
       </div>
-      <button class="btn-full" onclick="buildETF()">✨ AI로 ETF 구성하기</button>
+      <button class="btn-full" onclick="buildETF()">✨ Claude AI로 ETF 자동 구성하기</button>
+      <p style="font-size:11px;color:#444;text-align:center;margin-top:8px;">Claude AI가 선택한 테마에 맞는 기업을 자동으로 선별하고 비중을 설정해요</p>
     </div>
     <div id="etf-result"></div>
   </div>
@@ -341,7 +342,7 @@ cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
   <div class="nav-item" id="nav-community" onclick="showPage('community')"><i class="ti ti-flame"></i><span>커뮤니티</span></div>
   <div class="nav-item" id="nav-etf" onclick="showPage('etf')"><i class="ti ti-stack"></i><span>미니ETF</span></div>
   <div class="nav-item" id="nav-portfolio" onclick="showPage('portfolio')"><i class="ti ti-sword"></i><span>캐릭터</span></div>
-  <div class="nav-item" id="nav-mbti" onclick="showPage('mbti')"><i class="ti ti-brain"></i><span>성향</span></div>
+  <div class="nav-item" id="nav-game" onclick="showPage('game')"><i class="ti ti-trophy"></i><span>랭킹</span></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -375,9 +376,9 @@ const etfMap = {
   '클라우드':[{symbol:'MSFT',pct:40},{symbol:'GOOGL',pct:35},{symbol:'AMZN',pct:25}],
   '배당':[{symbol:'AAPL',pct:40},{symbol:'MSFT',pct:35},{symbol:'005930.KS',pct:25}],
   '메타버스':[{symbol:'META',pct:50},{symbol:'MSFT',pct:30},{symbol:'NVDA',pct:20}],
-  '방산':[{symbol:'MSFT',pct:40},{symbol:'GOOGL',pct:35},{symbol:'AMZN',pct:25}],
+  '방산':[{symbol:'LMT',pct:35},{symbol:'RTX',pct:30},{symbol:'NOC',pct:20},{symbol:'GD',pct:15}],
   '2차전지':[{symbol:'000660.KS',pct:40},{symbol:'005930.KS',pct:35},{symbol:'TSLA',pct:25}],
-  '바이오':[{symbol:'MSFT',pct:40},{symbol:'GOOGL',pct:35},{symbol:'AMZN',pct:25}],
+  '바이오':[{symbol:'JNJ',pct:30},{symbol:'PFE',pct:25},{symbol:'MRNA',pct:25},{symbol:'ABBV',pct:20}],
 };
 
 const etfColors = ['#1D9E75','#378ADD','#BA7517','#7F77DD','#E24B4A','#888780'];
@@ -393,6 +394,14 @@ const etfHints = {
   '000660.KS':{'반도체':'HBM3E 독점 공급으로 엔비디아 핵심 파트너','AI':'AI 서버용 고대역폭 메모리 시장 1위','default':'AI 메모리 혁명의 최대 수혜주'},
   'AMZN':{'클라우드':'AWS 세계 1위 클라우드로 이익 창출','AI':'Claude AI 탑재 Bedrock으로 기업 AI 공략','default':'이커머스·클라우드·광고 3각 성장'},
   'GOOGL':{'AI':'Gemini AI와 검색·유튜브 통합 AI 생태계','클라우드':'Google Cloud 빠른 성장으로 2위 도전','default':'검색·광고 시장의 절대 지배자'},
+  'JNJ':{'바이오':'존슨앤존슨 - 세계 최대 헬스케어 기업','default':'안정적인 배당과 헬스케어 포트폴리오'},
+  'PFE':{'바이오':'화이자 - mRNA 백신 개발로 바이오 혁신 선도','default':'글로벌 제약 시장의 핵심 기업'},
+  'MRNA':{'바이오':'모더나 - mRNA 기술로 차세대 치료제 개발 중','default':'바이오테크 혁신의 최전선'},
+  'ABBV':{'바이오':'애브비 - 면역 질환 치료제 시장 글로벌 1위','default':'안정적 배당과 강력한 신약 파이프라인'},
+  'LMT':{'방산':'록히드마틴 - F-35 전투기 세계 1위 방산 기업','default':'미국 최대 방위산업 기업'},
+  'RTX':{'방산':'레이시온 - 미사일·레이더 방산 시스템 선두주','default':'글로벌 방위 및 항공우주 기업'},
+  'NOC':{'방산':'노스롭그루만 - 스텔스 폭격기·우주 방산 특화','default':'미국 핵심 방위산업 기업'},
+  'GD':{'방산':'제너럴다이나믹스 - 군용차량·잠수함 방산 강자','default':'미국 방위산업 다각화 기업'},
 };
 
 const predictions = [
@@ -752,46 +761,90 @@ function getHint(symbol,keywords){
   return hints['default']||'이 키워드 테마와 관련된 유망 종목이에요';
 }
 
-function buildETF(){
-  if(!selectedKeywords.length){showToast('키워드를 먼저 선택해주세요');return;}
+async function buildETF(){
+  if(!selectedKeywords.length){showToast('테마를 먼저 선택해주세요');return;}
   const el=document.getElementById('etf-result');
-  el.innerHTML=`<div class="loading"><span class="spinner"></span>AI가 ETF를 구성하는 중...</div>`;
-  setTimeout(()=>{
-    const scoreMap={};
-    selectedKeywords.forEach(kw=>{
-      const stocks=etfMap[kw]||[];
-      stocks.forEach(s=>{scoreMap[s.symbol]=(scoreMap[s.symbol]||0)+s.pct;});
+  el.innerHTML=`<div class="loading"><span class="spinner"></span>Claude AI가 ${selectedKeywords.join('+')} 테마 기업을 분석하는 중...</div>`;
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: 'etf_build',
+        keywords: selectedKeywords.join(', ')
+      })
     });
-    const total=Object.values(scoreMap).reduce((a,b)=>a+b,0);
-    if(total===0){el.innerHTML=`<div style="color:#444;font-size:13px;text-align:center;padding:20px;">선택한 키워드에 맞는 종목이 없어요</div>`;return;}
-    let items=Object.entries(scoreMap).map(([symbol,score])=>({symbol,name:allPicks.find(p=>p.symbol===symbol)?.name||symbol,pct:Math.round(score/total*100)}));
-    items.sort((a,b)=>b.pct-a.pct);items=items.slice(0,6);
-    const totalPct=items.reduce((a,b)=>a+b.pct,0);
-    if(items.length>0)items[0].pct+=(100-totalPct);
-    const avgScore=items.map(i=>allPicks.find(p=>p.symbol===i.symbol)?.score||75).reduce((a,b)=>a+b,0)/items.length;
-    const estReturn=(avgScore*0.3).toFixed(1);
+    const data = await res.json();
+
+    if (data.stocks && data.stocks.length > 0) {
+      const items = data.stocks;
+      userData.etfCount=(userData.etfCount||0)+1;
+      addXP(30,'미니 ETF 생성!');checkBadges();
+      el.innerHTML=`<div class="section-card">
+        <h3><i class="ti ti-stack"></i> Claude AI 추천 ETF · ${selectedKeywords.join('+')} 테마</h3>
+        <p style="font-size:12px;color:#444;margin-bottom:14px;">${data.summary||''}</p>
+        ${items.map((item,i)=>`
+          <div class="etf-result-item">
+            <span class="etf-result-sym" style="font-size:12px;">${item.symbol}</span>
+            <div class="etf-bar-wrap"><div class="etf-bar" style="width:${item.pct}%;background:${etfColors[i%etfColors.length]};"></div></div>
+            <span class="etf-pct" style="color:${etfColors[i%etfColors.length]}">${item.pct}%</span>
+          </div>
+          <div style="margin:-4px 0 12px;padding:8px 10px;background:#0d0d0d;border-radius:6px;border-left:2px solid ${etfColors[i%etfColors.length]};">
+            <div style="font-size:12px;color:#ccc;font-weight:500;margin-bottom:2px;">${item.name}</div>
+            <div style="font-size:11px;color:#666;">💡 ${item.reason||''}</div>
+          </div>`).join('')}
+        <div class="etf-summary">
+          <div class="etf-sum-box"><div class="etf-sum-val green">+${data.expectedReturn||'15'}%</div><div class="etf-sum-lbl">예상 연수익률</div></div>
+          <div class="etf-sum-box"><div class="etf-sum-val amber">${data.risk||'중간'}</div><div class="etf-sum-lbl">리스크</div></div>
+          <div class="etf-sum-box"><div class="etf-sum-val">${items.length}개</div><div class="etf-sum-lbl">구성 종목</div></div>
+        </div>
+        <button class="btn-ghost" onclick="showToast('저장됐어요 ⭐')">⭐ 관심주에 저장</button>
+      </div>`;
+    } else {
+      throw new Error('No stocks returned');
+    }
+  } catch(e) {
+    // 폴백: 기존 방식
+    const scoreMap={};
+    const fallbackMap = {
+      'AI':[{symbol:'NVDA',name:'NVIDIA',pct:35,reason:'AI GPU 시장 80% 점유'},{symbol:'MSFT',name:'Microsoft',pct:25,reason:'Copilot AI 전 제품 탑재'},{symbol:'AMD',name:'AMD',pct:20,reason:'AI 칩 빠른 성장'},{symbol:'META',name:'Meta',pct:20,reason:'AI 광고 최적화 수혜'}],
+      '반도체':[{symbol:'NVDA',name:'NVIDIA',pct:40,reason:'GPU 반도체 절대 강자'},{symbol:'AMD',name:'AMD',pct:30,reason:'CPU·GPU 모두 성장'},{symbol:'000660.KS',name:'SK하이닉스',pct:20,reason:'HBM 메모리 1위'},{symbol:'005930.KS',name:'삼성전자',pct:10,reason:'종합 반도체 리더'}],
+      '전기차':[{symbol:'TSLA',name:'Tesla',pct:50,reason:'전기차 시장 선구자'},{symbol:'000660.KS',name:'SK하이닉스',pct:30,reason:'전기차 배터리 메모리 수혜'},{symbol:'005930.KS',name:'삼성전자',pct:20,reason:'전장용 반도체 성장'}],
+      '클라우드':[{symbol:'MSFT',name:'Microsoft',pct:40,reason:'Azure 세계 2위'},{symbol:'GOOGL',name:'Google',pct:35,reason:'Google Cloud 급성장'},{symbol:'AMZN',name:'Amazon',pct:25,reason:'AWS 세계 1위'}],
+      '바이오헬스':[{symbol:'JNJ',name:'Johnson & Johnson',pct:30,reason:'세계 최대 헬스케어 기업'},{symbol:'PFE',name:'Pfizer',pct:25,reason:'mRNA 백신 혁신 선도'},{symbol:'MRNA',name:'Moderna',pct:25,reason:'mRNA 플랫폼 기술 보유'},{symbol:'ABBV',name:'AbbVie',pct:20,reason:'면역 치료제 시장 1위'}],
+      '배당주':[{symbol:'AAPL',name:'Apple',pct:35,reason:'안정적 배당 성장주'},{symbol:'MSFT',name:'Microsoft',pct:35,reason:'30년 배당 귀족주'},{symbol:'005930.KS',name:'삼성전자',pct:30,reason:'한국 대표 배당주'}],
+      '메타버스':[{symbol:'META',name:'Meta',pct:50,reason:'AR 글래스 시장 선도'},{symbol:'MSFT',name:'Microsoft',pct:30,reason:'메타버스 기업용 솔루션'},{symbol:'NVDA',name:'NVIDIA',pct:20,reason:'메타버스 GPU 공급'}],
+      '방산':[{symbol:'LMT',name:'Lockheed Martin',pct:35,reason:'F-35 전투기 세계 1위'},{symbol:'RTX',name:'Raytheon',pct:30,reason:'미사일·레이더 시스템'},{symbol:'NOC',name:'Northrop Grumman',pct:20,reason:'스텔스 폭격기 특화'},{symbol:'GD',name:'General Dynamics',pct:15,reason:'군용 차량·잠수함 강자'}],
+      '2차전지':[{symbol:'000660.KS',name:'SK하이닉스',pct:40,reason:'배터리 소재 핵심 공급'},{symbol:'005930.KS',name:'삼성전자',pct:35,reason:'배터리 소재 생태계'},{symbol:'TSLA',name:'Tesla',pct:25,reason:'자체 4680 배터리 혁신'}],
+      '핀테크':[{symbol:'V',name:'Visa',pct:35,reason:'글로벌 결제 네트워크 1위'},{symbol:'MA',name:'Mastercard',pct:30,reason:'디지털 결제 인프라'},{symbol:'PYPL',name:'PayPal',pct:20,reason:'온라인 결제 선두주자'},{symbol:'SQ',name:'Block(Square)',pct:15,reason:'소상공인 핀테크 혁신'}],
+      '로보틱스':[{symbol:'NVDA',name:'NVIDIA',pct:35,reason:'로봇 AI 두뇌 공급'},{symbol:'TSLA',name:'Tesla',pct:30,reason:'휴머노이드 로봇 Optimus'},{symbol:'MSFT',name:'Microsoft',pct:20,reason:'산업용 로봇 AI 솔루션'},{symbol:'GOOGL',name:'Google',pct:15,reason:'DeepMind 로봇 AI 연구'}],
+      '우주항공':[{symbol:'LMT',name:'Lockheed Martin',pct:35,reason:'우주 발사체·위성 시스템'},{symbol:'NOC',name:'Northrop Grumman',pct:30,reason:'우주 망원경·탐사선 제작'},{symbol:'RTX',name:'Raytheon',pct:20,reason:'항공 엔진 부품 공급'},{symbol:'GD',name:'General Dynamics',pct:15,reason:'우주 통신 시스템'}],
+    };
+    const kw = selectedKeywords[0];
+    const items = fallbackMap[kw] || fallbackMap['AI'];
     userData.etfCount=(userData.etfCount||0)+1;
     addXP(30,'미니 ETF 생성!');checkBadges();
     el.innerHTML=`<div class="section-card">
       <h3><i class="ti ti-stack"></i> 나만의 ETF · ${selectedKeywords.join('+')} 테마</h3>
       ${items.map((item,i)=>`
         <div class="etf-result-item">
-          <span class="etf-result-sym">${item.symbol}</span>
-          <div class="etf-bar-wrap"><div class="etf-bar" style="width:${item.pct}%;background:${etfColors[i]};"></div></div>
-          <span class="etf-pct" style="color:${etfColors[i]}">${item.pct}%</span>
+          <span class="etf-result-sym" style="font-size:12px;">${item.symbol}</span>
+          <div class="etf-bar-wrap"><div class="etf-bar" style="width:${item.pct}%;background:${etfColors[i%etfColors.length]};"></div></div>
+          <span class="etf-pct" style="color:${etfColors[i%etfColors.length]}">${item.pct}%</span>
         </div>
-        <div style="margin:-4px 0 12px;padding:8px 10px;background:#0d0d0d;border-radius:6px;border-left:2px solid ${etfColors[i]};">
-          <div style="font-size:11px;color:#555;margin-bottom:2px;">${item.name}</div>
-          <div style="font-size:12px;color:#888;">💡 ${getHint(item.symbol,selectedKeywords)}</div>
+        <div style="margin:-4px 0 12px;padding:8px 10px;background:#0d0d0d;border-radius:6px;border-left:2px solid ${etfColors[i%etfColors.length]};">
+          <div style="font-size:12px;color:#ccc;font-weight:500;margin-bottom:2px;">${item.name}</div>
+          <div style="font-size:11px;color:#666;">💡 ${item.reason}</div>
         </div>`).join('')}
       <div class="etf-summary">
-        <div class="etf-sum-box"><div class="etf-sum-val green">+${estReturn}%</div><div class="etf-sum-lbl">예상 연수익률</div></div>
-        <div class="etf-sum-box"><div class="etf-sum-val amber">${avgScore>80?'낮음':avgScore>70?'중간':'높음'}</div><div class="etf-sum-lbl">리스크</div></div>
+        <div class="etf-sum-box"><div class="etf-sum-val green">+18%</div><div class="etf-sum-lbl">예상 연수익률</div></div>
+        <div class="etf-sum-box"><div class="etf-sum-val amber">중간</div><div class="etf-sum-lbl">리스크</div></div>
         <div class="etf-sum-box"><div class="etf-sum-val">${items.length}개</div><div class="etf-sum-lbl">구성 종목</div></div>
       </div>
       <button class="btn-ghost" onclick="showToast('저장됐어요 ⭐')">⭐ 관심주에 저장</button>
     </div>`;
-  },800);
+  }
 }
 
 // 포트폴리오 캐릭터
@@ -940,8 +993,3 @@ renderRecent();
 </script>
 </body>
 </html>
-HTMLEOF
-echo "done $(wc -c < /mnt/user-data/outputs/index.html) bytes"
-출력
-
-done 70941 bytes
