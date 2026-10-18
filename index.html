@@ -307,11 +307,11 @@
     <p class="page-title">⚔️ 포트폴리오 캐릭터</p>
     <div class="card">
       <p style="font-size:13px;color:#555;margin-bottom:14px;">보유 종목과 금액(만원)을 입력하면 캐릭터 스탯으로 변환해드려요</p>
-      <div class="port-input-row">
-        <input class="port-input" id="port-sym" placeholder="종목 (예: AAPL, 삼성전자)" />
-        <input class="port-input" id="port-amt" placeholder="금액(만원)" type="number" style="max-width:110px;" />
-        <button class="btn-green" style="flex:none;padding:10px 14px;" onclick="addPort()">추가</button>
+     <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input class="port-input" id="port-sym" placeholder="종목 (AAPL, 삼성전자)" />
+        <input class="port-input" id="port-amt" placeholder="금액(만원)" type="number" style="max-width:90px;" />
       </div>
+      <button class="btn-green" style="width:100%;padding:10px;" onclick="addPort()">+ 추가</button>
       <div id="port-list"></div>
       <button class="btn-full" style="margin-top:12px;" onclick="analyzePort()">⚔️ 캐릭터 생성하기</button>
     </div>
