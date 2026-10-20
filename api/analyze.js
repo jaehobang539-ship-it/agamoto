@@ -19,6 +19,11 @@ export default async function handler(req, res) {
 미국 주식(NASDAQ/NYSE)과 한국 주식(KRX) 모두 포함 가능합니다.
 한국 주식의 경우 티커 뒤에 .KS를 붙여주세요 (예: 005930.KS)
 
+중요: 반드시 "${keywords}" 테마와 직접 관련된 기업만 선정하세요.
+예를 들어 명품 테마라면 LVMH, Hermès, Kering 같은 명품 기업을,
+바이오 테마라면 생명과학/제약 기업만 선정하세요.
+테마와 무관한 AI/반도체 기업을 임의로 추가하지 마세요.
+
 반드시 아래 JSON 형식으로만 답변하세요 (다른 텍스트 없이):
 {
   "stocks": [
@@ -58,12 +63,15 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: type === 'etf_hint' ? 100 : 1000,
+        max_tokens: type === 'etf_hint' ? 100 : 1500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
     const data = await response.json();
+    if (!data.content || !data.content[0]) {
+      throw new Error('Claude API 응답 없음');
+    }
     const text = data.content[0].text;
 
     if (type === 'etf_hint') {
